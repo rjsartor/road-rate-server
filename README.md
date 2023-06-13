@@ -25,6 +25,11 @@ A template for developing and deploying Node.js apps.
 
 By default, the template is configured to connect to a MongoDB database using Mongoose.  It can be changed to connect to a PostgreSQL database using Knex by replacing any imports of `db-mongoose.js` with imports of `db-knex.js`, and uncommenting the Postgres `DATABASE_URL` lines in `config.js`.
 
+Download Mongodb:
+`brew tap mongodb/brew`
+`brew install mongodb-community`
+`brew services start mongodb-community`
+
 ## Deployment
 
 Requires the [Heroku CLI client](https://devcenter.heroku.com/articles/heroku-command-line).

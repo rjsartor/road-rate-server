@@ -1,6 +1,6 @@
 'use strict';
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+// const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
   name: { 
@@ -14,10 +14,14 @@ const UserSchema = new mongoose.Schema({
   },
   password : { 
     type: String, 
-    required: true 
   },
   email : {
-    type: String
+    type: String,
+    required: true, 
+    unique: true ,
+  },
+  authId: {
+    type: String,
   }
 });
 
@@ -42,12 +46,13 @@ UserSchema.set('timestamps', true);
 
 // Creates validatePassword method
 UserSchema.methods.validatePassword = function(incomingPassword) {
-  return bcrypt.compare(incomingPassword, this.password);
+  // return bcrypt.compare(incomingPassword, this.password);
+  return true;
 };
 
 UserSchema.statics.hashPassword = function(incomingPassword) {
-  const digest = bcrypt.hash(incomingPassword, 10);
-  return digest;
+  // const digest = bcrypt.hash(incomingPassword, 10);
+  return incomingPassword;
 };
 
 module.exports = mongoose.model('User', UserSchema);
