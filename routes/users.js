@@ -138,7 +138,6 @@ async function getExistingUser(email) {
 
 
 router.post('/user', async (req, res, next) => {
-
   const requiredFields = ['username', 'email'];
   const missingField = requiredFields.find(field => !(field in req.body));
         
@@ -203,7 +202,7 @@ router.post('/user', async (req, res, next) => {
     return next(err);
   }
 
-  let { username, email, name} = req.body;
+  let { username, email, name } = req.body;
 
   if (name) {
     name = name.trim();
@@ -215,8 +214,7 @@ router.post('/user', async (req, res, next) => {
       console.error('Failed to get existing user:', error);
     });
 
-
-  if (existingUser) return existingUser;
+  if (existingUser) return res.status(200).json(existingUser.serialize());
     
   return User.create({
     username,
@@ -224,7 +222,6 @@ router.post('/user', async (req, res, next) => {
     email,
   })
     .then(user => {
-      console.log('now here I am')
       return res.status(201).json(user.serialize());
     })
     .catch( err => {
