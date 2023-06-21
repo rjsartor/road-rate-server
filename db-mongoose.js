@@ -8,7 +8,7 @@ const { DATABASE_URL } = require('./config');
 mongoose.set('debug', true);
 
 async function dbConnect(url = DATABASE_URL) {
-  console.log('connecting');
+
   return mongoose.connect(url, { useNewUrlParser: true, useCreateIndex: true })
     .then(() => {
       console.log('MongoDB connected successfully');
