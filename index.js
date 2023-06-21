@@ -64,19 +64,19 @@ app.use('/api/auth', authRouter);
 app.use(error404);
 app.use(error500);
 
-function runServer(port = PORT) {
-  const server = app
-    .listen(port, () => {
+async function runServer(port = PORT) {
+  try {
+    await dbConnect();
+    const server = app.listen(port, () => {
       console.info(`App listening on port ${server.address().port}`);
-    })
-    .on('error', err => {
-      console.error('Express failed to start');
-      console.error(err);
     });
+  } catch (err) {
+    console.error('Express failed to start');
+    console.error(err);
+  }
 }
 
 if (require.main === module) {
-  dbConnect();
   runServer();
 }
 
