@@ -5,6 +5,8 @@ mongoose.Promise = global.Promise;
 
 const { DATABASE_URL } = require('./config');
 
+mongoose.set('debug', true);
+
 function dbConnect(url = DATABASE_URL) {
   return mongoose.connect(url, { useNewUrlParser: true, useCreateIndex: true })
     .catch(err => {
