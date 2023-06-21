@@ -22,6 +22,9 @@ const UserSchema = new mongoose.Schema({
   },
   authId: {
     type: String,
+  },
+  avatar: {
+    type: String,
   }
 });
 

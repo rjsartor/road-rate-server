@@ -7,8 +7,12 @@ const { DATABASE_URL } = require('./config');
 
 mongoose.set('debug', true);
 
-function dbConnect(url = DATABASE_URL) {
+async function dbConnect(url = DATABASE_URL) {
+  console.log('connecting');
   return mongoose.connect(url, { useNewUrlParser: true, useCreateIndex: true })
+    .then(() => {
+      console.log('MongoDB connected successfully');
+    })
     .catch(err => {
       console.error('Mongoose failed to connect');
       console.error(err);
