@@ -9,12 +9,21 @@ const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
 const router = express.Router();
 
+const getReviews = async (filter, res, next) => {
+  try {
+    const reviews = await Review.find(filter).sort({ 'createdAt': -1 });
+    res.status(200).json(reviews);
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
+};
+
 /* ========== GET ALL REVIEWS ========== */
-router.get('/', (req, res, next) => {
-  const { number } = req.query;
-  const { state } = req.query;
-  let filter = {};
+router.get('/', async (req, res, next) => {
+  const { number, state } = req.query;
   const re = new RegExp(number, 'i');
+  let filter = {};
 
   if (number && !state) {
     filter = {
@@ -31,150 +40,104 @@ router.get('/', (req, res, next) => {
     };
   }
 
-  Review.find(filter)
-    .sort({'createdAt': -1})
-    .exec()
-    .then(docs => {
-      res.status(200).json(docs);
-    })
-    .catch(err => {
-      console.log(err);
-      next(err);
-    });
+  await getReviews(filter, res, next);
 });
 
-/* ========== GET REVIEWS BY PLATEID ========== */
-router.get('/my-plates/:plateId', (req, res, next) => {
-  let plateId = req.params.plateId;
-
-  Review.find({ plateId })
-    .then(data => res.json(data))
-    .catch(err => next(err));
-});
-
-/* ========== GET FILTERED REVIEWS BY PLATEID (for public plate)  ========== */
-router.get('/plate/:plateId', (req, res, next) => {
-  let plateId = req.params.plateId;
- 
-  Review.find({ plateId })
-    .then(data => res.json(data))
-    .catch(err => next(err));
-});
-
-/* ========== GET FILTERED REVIEWS FOR PLATES ========== */
-router.get('/:plateState/:plateNumber', (req, res, next) => {
-  let plateState = req.params.plateState;
-  let plateNumber = req.params.plateNumber;
-  let filter = {};
- 
-  filter = {
-    plateState,
-    plateNumber
-  };
-
-  Review.find(filter)
-    .then(data => res.json(data))
-    .catch(err => next(err));
+/* ========== GET FILTERED REVIEWS BY PLATEID (for public plate) ========== */
+router.get('/plate/:plateId', async (req, res, next) => {
+  console.log('plate/:plateId')
+  const plateId = req.params.plateId;
+  await getReviews({ plateId }, res, next);
 });
 
 /* ========== GET FILTERED REVIEWS LEFT BY SPECIFIC USER ========== */
-// this is the same code above but uses the userId to fetch reviews & filter 
-router.get('/:userId', (req, res, next) => {
+router.get('/:userId', async (req, res, next) => {
+  const userId = req.params.userId;
+  console.log('by user');
 
-  let userId = req.params.userId;
-
-  User.find({id: userId})
-    .then(() => {  
-      return Review.find({reviewerId: userId})
-        .then(reviews => res.json(reviews))
-        .catch(err => next(err));
-    })
-    .catch( err => next(err));
-
+  try {
+    await User.find({ id: userId });
+    const reviews = await Review.find({ reviewerId: userId });
+    res.json(reviews);
+  } catch (err) {
+    next(err);
+  }
 });
-    
-/* ========== GET ONE REVIEW BY ID ========== */
-router.get('/:id', (req, res, next) => {
-  let { id }  = req.params;
 
-  if(!id || id === '' ) {
+/* ========== GET ONE REVIEW BY ID ========== */
+router.get('/:id', async (req, res, next) => {
+  let { id } = req.params;
+  console.log('by id')
+
+  if (!id || id === '') {
     const err = {
       message: 'Missing review `id`',
       reason: 'MissingContent',
       status: 400,
-      location: 'get'
+      location: 'get',
     };
     return next(err);
   }
 
-  Review.findById(id)
-    .then(data => res.json(data))
-    .catch(err => next(err));
+  try {
+    const review = await Review.findById(id);
+    res.json(review);
+  } catch (err) {
+    next(err);
+  }
 });
 
 /* ========== POST/CREATE A REVIEW ========== */
-router.post('/', jsonParser, (req, res, next) => {
-  let plateNumber = req.body.plateNumber;
-  let reviewerId = req.body.reviewerId;
-  let isPositive = req.body.rating;
-  let message = req.body.message;
-  let plateState = req.body.plateState;
-  
-  const newReview = {
-    plateNumber: plateNumber.toUpperCase(),
-    reviewerId,
-    message,
-    isPositive,
-    plateState,
-  };
+router.post('/', jsonParser, async (req, res, next) => {
+  try {
+    const { plateNumber, reviewerId, rating, message, plateState } = req.body;
 
-  Plate.findOne({plateNumber, plateState})
-    .then(plate => {
-      if (!plate) {
-        let karma;
+    const newReview = {
+      plateNumber: plateNumber.toUpperCase(),
+      reviewerId,
+      message,
+      isPositive: rating,
+      plateState,
+    };
 
-        if (isPositive === 'true') {
-          karma = 1;
-        } else {
-          karma = - 1;
-        }
-        
-        Plate.create({plateNumber, plateState, karma})
-          .then((plate) => {
-            newReview.plateId = plate._id;
-            Review.create(newReview)
-              .then(data => {
-                return res.status(201).json(data);
-              })
-              .catch(err => next(err));
-          });
+    const plate = await Plate.findOne({ plateNumber, plateState });
+    
+    if (!plate) {
+      let karma = (rating === 'true') ? 1 : -1;
+      
+      const newPlate = await Plate.create({ plateNumber, plateState, karma });
+      newReview.plateId = newPlate._id;
+    } else {
+      newReview.plateId = plate._id;
+      if (rating === 'true') {
+        await Plate.findByIdAndUpdate(plate._id, { $inc: { karma: 1 } });
       } else {
-        newReview.plateId = plate._id;
-        Review.create(newReview)
-          .then(data => {
-            if (data.isPositive === 'true') {
-              Plate.findById(newReview.plateId)
-                .then(plate => plate.updateOne({$inc: {karma: 1}}));
-            } else {
-              Plate.findById(newReview.plateId)
-                .then(plate => plate.updateOne({$inc: {karma: - 1}}));
-            }  
-            return res.status(201).json(data);
-          })
-          .catch(err => {
-            next(err);
-          });
+        await Plate.findByIdAndUpdate(plate._id, { $inc: { karma: -1 } });
       }
-    });
+    }
+
+    const createdReview = await Review.create(newReview);
+    res.status(201).json(createdReview);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.put('/:id', jsonParser, (req, res, next) => {
-  const {id} = req.params;
-  const {ownerResponse} = req.body;
-  
-  Review.findOneAndUpdate({_id: id}, {ownerResponse: ownerResponse}, {new: true})
-    .then(review => res.json(review))
-    .catch(err => next(err));
+/* ========== UPDATE A REVIEW ========== */
+router.put('/:id', jsonParser, async (req, res, next) => {
+  const { id } = req.params;
+  const { ownerResponse } = req.body;
+
+  try {
+    const updatedReview = await Review.findByIdAndUpdate(
+      id,
+      { ownerResponse },
+      { new: false }
+    );
+    res.json(updatedReview);
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;
