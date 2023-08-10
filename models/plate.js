@@ -54,7 +54,6 @@ PlateSchema.set('toJSON', {
   transform: (doc, result) => {
     delete result._id; //This is the reviewId
     delete result.__v;
-    delete result.userId;
   },
 });
 
