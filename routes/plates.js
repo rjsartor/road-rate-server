@@ -20,12 +20,12 @@ const validateFields = (fields, data) => {
 /* ========== GET ALL PLATES ========== */
 router.get('/', async (req, res, next) => {
   try {
-    const { search, state } = req.query;
+    const { number, state } = req.query.params;
     let filter = {};
 
-    if (search && state) {
+    if (number && state) {
       filter = {
-        plateNumber: search,
+        plateNumber: number,
         plateState: state,
       };
     }
