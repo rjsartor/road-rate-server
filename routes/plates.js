@@ -20,6 +20,7 @@ const validateFields = (fields, data) => {
 /* ========== GET ALL PLATES ========== */
 router.get('/', async (req, res, next) => {
   try {
+   
     const { number, state } = req.query.params;
     let filter = {};
 
@@ -31,6 +32,7 @@ router.get('/', async (req, res, next) => {
     }
 
     const plates = await Plate.find(filter);
+    console.log("plates", plates)
     return res.status(200).json(plates);
   } catch (err) {
     next(err);
